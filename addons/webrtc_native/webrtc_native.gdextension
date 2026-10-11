@@ -1,0 +1,14 @@
+[configuration]
+
+entry_symbol = "webrtc_extension_init"
+compatibility_minimum = 4.3
+; Browsers have WebRTC built in, so web exports never load this extension.
+exclude_tags = ["web", "no-webrtc"]
+
+; godotengine/webrtc-native 1.2.2-stable (MIT, licenses in this folder).
+; Trimmed to Windows x86_64 (the desktop target); copy other platforms' libraries
+; from the official release if you export for them.
+[libraries]
+
+windows.debug.x86_64 = "lib/libwebrtc_native.windows.template_debug.x86_64.dll"
+windows.release.x86_64 = "lib/libwebrtc_native.windows.template_release.x86_64.dll"

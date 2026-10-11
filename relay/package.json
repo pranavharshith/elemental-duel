@@ -1,0 +1,14 @@
+{
+  "name": "elemental-duel-relay",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Room-code relay server for Elemental Duel online matches (Cloudflare Worker + Durable Objects).",
+  "scripts": {
+    "dev": "wrangler dev --ip 127.0.0.1 --port 8787",
+    "deploy": "wrangler deploy",
+    "types": "wrangler types"
+  },
+  "devDependencies": {
+    "wrangler": "4.149.0"
+  }
+}

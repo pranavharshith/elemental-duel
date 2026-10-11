@@ -1,0 +1,592 @@
+Elemental Duel — complete build plan
+Research and asset shortlist · Updated October 10, 2026 · Godot 4 · Windows laptop · 1v1 3D PvP
+My recommendation is to build this in Godot 4.7.2 using GDScript, with CC0 visual/audio assets and simple custom gameplay code. Godot is free, open-source and released under the MIT license; its official Windows download page lists version 4.7.2, dated August 18, 2026. 
+
+
+Godot Engine
++1
+
+
+
+The key principle: download art assets, not an entire game's worth of scripts. Create the combat rules yourself and borrow only a small, well-understood camera or input component if needed.
+First: your licensing requirement
+Preferred: CC0 assets
+These are released without the usual copyright restrictions, so commercial use, modification and redistribution are generally permitted without attribution. Poly Haven explicitly releases its assets under CC0. 
+
+
+Poly Haven
+
+
+
+
+
+
+Permissive code: MIT
+MIT-licensed controllers and libraries can generally be reused in commercial games, but you must retain their copyright and license notices when redistributing the covered code.
+
+
+
+What nobody can guarantee
+No website can promise that nobody will ever complain or that an uploaded file has no third-party rights issues. Even a CC0 asset is not a blanket guarantee about trademarks or unrelated rights. Keep the original license evidence for every download.
+
+
+
+I have prioritised CC0 asset pages and identified MIT code separately. Avoid packs labelled merely free, royalty-free, personal use only or non-commercial unless their terms have been checked.
+1. Install these tools first
+Required software — in this order
+
+
+
+
+
+
+
+
+
+1. Godot Engine 4.7.2 — required
+Free 3D game engine; use GDScript, not C#.
+Download for Windows · Official documentation
+Use the stable release, not a preview build.
+
+
+
+
+
+
+
+
+
+
+
+2. Blender — optional
+Useful for checking models, adjusting proportions and fixing animation imports.
+Download Blender · Blender manual
+
+
+
+
+
+
+
+
+
+
+
+3. Git — strongly recommended
+Create backups before importing addons or changing physics.
+Git for Windows · GitHub Desktop · Git documentation
+
+
+
+Start with Godot and Blender only if you need it. Do not install Unity, Unreal, online services or a large framework as well.
+2. Download the characters and animations
+These assets are suitable for stylised, lightweight 3D characters. Inspect the previews before downloading.
+
+
+
+
+
+
+
+
+
+A. Quaternius RPG Character Pack — recommended starting point
+Six textured, rigged and animated fantasy characters. Use two different characters, or duplicate one and give the second a different material colour. The pack is listed as CC0. 
+
+
+RPG Character Pack
+
+
+
+Preview and download
+
+
+
+
+
+
+
+
+
+
+
+B. Kenney Mini Characters
+Alternative for a more playful, compact character style. CC0. 
+
+
+Kenney
+
+
+
+Preview and download
+
+
+
+
+
+
+
+
+
+
+
+C. Wizard Creation — OpenGameArt
+A free stylised wizard model with a basic rig and a simple animation example. CC0. 
+
+
+OpenGameArt.org
+
+
+
+Preview and download
+
+
+
+Animation libraries: what you actually need
+Download just one primary animation source initially.
+Resource	What it gives you
+Quaternius Universal Animation Library	120+ humanoid animations, including locomotion and combat; CC0.  Universal Animation Library
+Quaternius Animated Characters Pack	Over 50 animated characters with their own rigs and animations; CC0.  OpenGameArt.org
+Kenney Animated Characters	Ready-made animated character alternatives; CC0.  Kenney
+My choice: use Quaternius RPG characters first. If their included animations are insufficient, test the Universal Animation Library and retarget the clips to your character's skeleton.
+Required animation states: idle, walk, run, strafe, cast, hit reaction and death. The spatial jump can initially use a short disappearing/appearing effect instead of a complicated movement animation.
+A single connected, properly skinned character mesh is preferable to separately assembled body parts. The skeleton should deform the mesh naturally, preventing visible gaps around the shoulders, elbows, hips and knees.
+3. Build the circular arena
+
+
+
+
+
+
+
+
+
+A. Kenney Mini Arena
+Best first visual reference for the battleground. CC0. 
+
+
+Kenney
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+B. Modular Dungeon Kit
+Useful for optional wall and floor details. CC0. 
+
+
+Kenney
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+C. Ultimate Platformer Pack
+An alternative source of floor pieces, props and other low-poly environment elements. CC0. 
+
+
+itch.io
+
+
+
+
+
+
+Important: for version one, make the actual arena yourself using basic Godot meshes. Downloaded environment art should be decoration, not the thing that determines whether players fall through the floor or cross the boundary.
+Recommended layout:
+- Arena radius: approximately 12 metres.
+- Flat floor with a solid collision shape.
+- Continuous circular perimeter wall.
+- Two spawn positions on opposite sides.
+- No pits, moving platforms or destructible environment.
+- Temporary earth walls are separate objects, not permanent arena geometry.
+For a reliable collision boundary, create a ring of overlapping wall segments or a suitable continuous collision mesh. Do not rely on the visible wall model as the only protection.
+4. Spells and visual effects
+For this game, a particle-based system will be more flexible than downloading a separate elaborate spell animation for every attack.
+
+
+
+
+
+
+
+
+
+A. Kenney Particle Pack
+General particle sprites for bursts, impacts and magical energy. CC0. 
+
+
+Kenney
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+B. Light — Magic Effect
+Glowing projectile and spell-effect artwork. CC0. 
+
+
+OpenGameArt.org
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+C. Cosmic Time — Magic Effect
+Useful inspiration and textures for wormholes and spatial jumps. CC0. 
+
+
+OpenGameArt.org
+
+
+
+
+
+
+These are mainly 2D effect assets, not complete 3D spells. They can be displayed as camera-facing sprites in the 3D world. Use Godot's GPUParticles3D, simple meshes, lights and shaders for the main 3D presentation.
+Exact implementation plan for the six abilities
+Ability	Implementation
+Fireball	Small emissive projectile, orange particles, collision and a short burn effect
+Water rocket	Fast blue projectile with a small splash and mild knockback
+Earth wall	Spawn a temporary stone mesh with its own collision shape
+Wind push	Directional cone or sphere-area effect, applying limited pushback
+Lightning	Brief warning marker, followed by a lightning strike in a defined area
+Spatial jump	Short-lived glowing ring at the origin and destination, then teleport
+For effects, prioritise clear hit feedback over visual complexity. Players need to see where lightning will strike and where a spatial jump will land.
+5. Camera and movement code — the most important technical downloads
+My recommendation is a third-person over-the-shoulder camera with free mouse aiming, SpringArm collision handling and a centered crosshair. A hard lock-on camera is less appropriate because aiming and spatial jumping depend on the camera direction.
+Here are three code and reference sources:
+
+
+
+
+
+
+
+
+
+A. Official SpringArm3D camera tutorial — start here
+Shows how to keep the camera from clipping into nearby geometry.
+Read the official tutorial 
+
+
+Godot Engine (stable) documentation in English
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+B. Godot Third Person Camera addon
+Reusable camera code with mouse-follow, character-follow and shoulder-view modes. Listed under the MIT license. 
+
+
+Godot Asset Library
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+C. Godot Third Person Controller source
+A modular controller with movement states, camera modes, aiming and customisable settings. The Godot Asset Library lists the project under MIT. Inspect the code and verify the version before importing it. 
+
+
+Godot Asset Library
+
+
+
+
+
+
+Camera settings I would start with
+Setting	Starting value
+Camera	Third-person shoulder view
+Field of view	75°
+Camera distance	4 metres
+Pivot height	1.4 metres
+Vertical rotation limits	−40° to +25°
+Mouse sensitivity	Adjustable in settings
+Aim	Crosshair + camera raycast
+Character movement	WASD relative to camera yaw
+A useful Godot scene structure is:
+Player (CharacterBody3D)
+├── CollisionShape3D
+├── CharacterMesh
+│   └── Skeleton3D
+├── AnimationTree
+├── CameraPivot (Node3D)
+│   └── SpringArm3D
+│       └── Camera3D
+├── AimOrigin (Marker3D)
+└── SpellSpawn (Marker3D)
+
+
+This is a scene-structure blueprint, not a complete working project.
+Aiming rule: cast a ray from the centre of the camera view to find the intended target point. Spawn the projectile at the player's casting position and direct it toward that point. This prevents projectiles from appearing to miss when the character is off-centre on the screen.
+For the spatial jump, derive a safe target from the camera direction, validate the landing point against the arena and other characters, and then teleport. Never blindly add the camera's forward vector to the player's position.
+6. Combat code and collision systems
+These are the three technical references I would use rather than copying a complete unrelated fighting game.
+Character movement and collision
+Godot CharacterBody3D documentation — character movement, collision detection and sliding. 
+
+
+Godot Engine (4.0) documentation in English
+
+
+
+
+
+
+Spell input and combo recognition
+Input Buffer Combo System — reusable combo-input code with a configurable time window. Listed under MIT. 
+
+
+Godot Asset Library
+
+
+
+
+
+
+Spell targeting and collision
+RayCast3D · Area3D — target detection, damage zones and projectile interactions.
+
+
+
+Use Area3D for simple hit detection, CharacterBody3D for players and walls, and ray or shape casts for fast projectiles to avoid skipping through targets between physics frames.
+For multiplayer, the server must validate hits, damage, cooldowns, SP and teleport destinations. Client-reported results should not be trusted. Godot's multiplayer documentation specifically recommends authoritative handling of gameplay-critical state. 
+
+
+Godot Engine (latest) documentation in English
+
+
+
+7. Textures, sound and interface
+These complete the minimum asset library for a polished prototype.
+
+
+
+
+
+
+
+
+
+Textures and materials
+Poly Haven — CC0 models and materials · Kenney Retro Textures Fantasy · Kenney Development Essentials
+Poly Haven explicitly provides its assets for commercial use without required attribution. 
+
+
+Poly Haven
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Audio
+Kenney Impact Sounds · Kenney UI Audio · OpenGameArt Magic Spell SFX
+Impact and UI packs are CC0; the spell-sound page is also explicitly listed as CC0. 
+
+
+Kenney
++2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+HUD and menu assets
+Kenney UI Pack · Free Game UI Assets · Free Simple Health Bar Assets
+The first two list their assets as CC0; the health-bar pack is also CC0. 
+
+
+itch.io
++2
+
+
+
+
+
+
+The minimum HUD needs only two HP bars, an SP bar, six ability icons and a small combo indicator. Implement the health/SP bars in native Godot UI first; import extra artwork only if it improves the result.
+8. The networking sources for actual PvP
+Do not begin with internet matchmaking. Build the combat locally, then add networking.
+A. Godot 3D Multiplayer Template
+An MIT-listed starter template with host/join, synced character movement and animations, plus dedicated-server support. Check its engine-version requirements and every bundled asset's license before reuse. 
+
+
+Godot Asset Library
+
+
+
+
+
+B. Official Godot High-Level Multiplayer
+Learn how RPCs, multiplayer authority and synchronisation work.
+
+
+C. Official Godot Demo Projects
+Additional reference implementations for networking and other game systems. Use examples as learning material rather than assuming they are a complete online game.
+
+
+
+Public online PvP eventually requires a reliable host/session system, server-authoritative combat and a way for players behind different routers to connect. Treat that as a later milestone, not a prerequisite for testing the game.
+
+The full step-by-step build order
+Follow this sequence; each phase should work before moving to the next.
+01
+
+Create the project and establish licensing
+Install Godot, create the project, choose a renderer, initialise Git, and create a LICENSES folder. Save each asset's source URL, license and original license file. Include the Godot MIT notice when distributing the engine.
+
+
+
+02
+
+Build the empty arena
+Create the circular floor, perimeter wall, lighting and two spawn locations using primitive meshes and static collision bodies.
+
+
+
+03
+
+Make one character move perfectly
+Add the capsule collider, WASD movement, camera orbit, mouse aiming and collision handling. Test against the arena boundary before importing animations.
+
+
+
+04
+
+Add two complete characters
+Import one suitable model, get the skeleton and animations working, then duplicate it with a distinct appearance. Add the second player's collision and spawn position. Prevent overlapping characters.
+
+
+
+05
+
+Implement HP and the six base abilities
+Create a single authoritative health system and implement fire, water, earth, wind, lightning and spatial jump individually. Confirm that all six work before introducing combos.
+
+
+
+06
+
+Add double and triple combinations
+Store combination definitions in one data table. Resolve three-key combinations before two-key combinations, and two-key combinations before single spells. Treat key order as irrelevant if that is the intended design.
+
+
+
+07
+
+Implement safe spatial jumping
+Check the landing point, ensure the destination lies within the playable circle, avoid walls and characters, and deduct SP only for successful jumps. Regenerate SP over time.
+
+
+
+08
+
+Add visuals, sound and HUD
+Introduce the selected particle effects, spell sounds, HP/SP bars, ability indicators and hit feedback. Keep the screen readable even when several effects overlap.
+
+
+
+09
+
+Test local combat exhaustively
+Verify collision, damage, combo timing, simultaneous hits, wall placement, cooldowns, SP regeneration and the round-end condition. Repeat difficult cases rather than testing only the normal path.
+
+
+
+10
+
+Add online PvP last
+Implement host/join, server-authoritative movement and spell resolution, synchronised HP/SP and a match-end state. Test on two separate computers before attempting public matchmaking.
+
+
+
+9. Final decisions to lock before you build
+Design decision	Recommendation
+Movement	WASD, camera-relative
+Six ability inputs	Q, E, R, F, C, Space
+Combos	Buffer rapid inputs; longest valid combo takes priority
+SP	Starts at 100; spatial jump costs 35; regeneration delayed briefly after use
+Arena	Circular, flat, enclosed, with no environmental hazards
+Character bodies	Continuous skinned meshes, capsule physics
+Combat authority	Server decides damage and match results online
+Game modes	One training mode first, then host/join 1v1
+First release	One arena, two characters, six abilities and a small, balanced combo set
+One final design warning: elemental combos create more interactions than they appear to. Five ordinary elemental keys already yield 10 possible pairs and 10 possible three-element combinations. Build the combo system so new combinations are data entries rather than new custom code paths. Start with a handful of combinations, test their counters, and expand to the full library only when the base combat feels good.
+Your first playable milestone should be two characters in a circular arena, moving smoothly, casting six basic abilities and reducing each other's HP to zero without falling through the floor, clipping through walls or overlapping bodies. Once that works, the rest becomes an incremental game-development task rather than a large, tangled project.

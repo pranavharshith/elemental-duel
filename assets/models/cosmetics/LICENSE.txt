@@ -1,0 +1,4 @@
+Source archive: SOME ASSESTS/source (1).zip -> Separate_assets_glb.zip
+Pack: Creative Characters FREE (modular character accessories).
+Retain the original store licence with the archive; verify redistribution
+terms before shipping a build.
