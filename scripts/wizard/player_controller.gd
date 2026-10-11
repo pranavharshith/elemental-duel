@@ -81,10 +81,11 @@ func _ready() -> void:
 	_pitch_node.add_child(_arm)
 	camera = ShakeCamera.new()
 	camera.name = "PlayerCamera"
-	camera.fov = FOV
+	camera.fov = Game.camera_fov
 	camera.near = CAMERA_NEAR
 	camera.current = true
 	_arm.add_child(camera)
+	Game.presentation_changed.connect(func() -> void: camera.fov = Game.camera_fov)
 	_exclude_wizard_from_camera()
 
 func _exclude_wizard_from_camera() -> void:

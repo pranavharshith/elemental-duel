@@ -9,7 +9,7 @@ var _hint: Label
 
 func _ready() -> void:
 	theme = UIKit.theme()
-	add_theme_stylebox_override("panel", UIKit.panel_style(Color(0.06, 0.05, 0.11, 0.94), 16, Color(0.5, 0.4, 0.85, 0.7)))
+	add_theme_stylebox_override("panel", UIKit.panel_style(UIKit.BG, 6, UIKit.ACCENT.darkened(0.45), 1))
 	custom_minimum_size = Vector2(820, 0)
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 10)

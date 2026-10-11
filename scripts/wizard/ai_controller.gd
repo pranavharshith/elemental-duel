@@ -42,6 +42,8 @@ var _evade_time := 0.0
 var _seen_threats: Dictionary = {}
 var _aim_noise := Vector3.ZERO
 var _move := Vector3.ZERO
+var _round_generation := 0
+var _threat_scan := 0.0
 # Line of sight
 var _los := true
 var _los_timer := 0.0
@@ -56,6 +58,12 @@ func setup(w: Wizard, difficulty: int) -> void:
 
 ## Fresh state each round; the first spell comes after a short grace period.
 func reset_round() -> void:
+	_round_generation += 1
+	_dodge_cooldown = 0.0
+	_flank_jump_cd = 0.0
+	_blocked_time = 0.0
+	_los_timer = 0.0
+	_los = true
 	_think = float(profile["think"]) * 1.2
 	_plan.clear()
 	_plan_key = ""
@@ -78,7 +86,10 @@ func _physics_process(delta: float) -> void:
 	_update_los(delta, opp)
 	_update_aim(opp)
 	_update_movement(delta, opp)
-	_react_to_threats(opp)
+	_threat_scan -= delta
+	if _threat_scan <= 0.0:
+		_threat_scan = 0.05
+		_react_to_threats(opp)
 	_update_casting(delta, opp)
 
 # --------------------------------------------------------------------- sight
@@ -225,8 +236,11 @@ func _react_to_threats(opp: Wizard) -> void:
 		if randf() > float(profile["dodge_chance"]):
 			continue
 		_dodge_cooldown = float(profile["react"]) + 0.4
-		await wizard.get_tree().create_timer(float(profile["react"]) * 0.5).timeout
-		if not is_instance_valid(wizard) or not wizard.alive or not is_instance_valid(proj):
+		var generation := _round_generation
+		await wizard.get_tree().create_timer(float(profile["react"])).timeout
+		if generation != _round_generation or not enabled:
+			return
+		if not is_instance_valid(wizard) or not wizard.alive or not wizard.controls_enabled or not is_instance_valid(proj):
 			return
 		_evade(proj.velocity, opp)
 		return
@@ -311,6 +325,8 @@ func _choose_spell(opp: Wizard) -> String:
 		var w := 1.0 if n == 1 else (bias * 1.4 if n == 2 else bias * bias * 1.6)
 		match String(spell["type"]):
 			"projectile":
+				if spell.has("homing") and dist > float(spell["speed"]) * float(spell.get("lifetime", 3.5)) * 0.85:
+					continue
 				if not _los:
 					w *= 0.0 if not spell.has("homing") else 0.6
 				else:
@@ -325,7 +341,7 @@ func _choose_spell(opp: Wizard) -> String:
 			"cone":
 				w *= 2.6 if _los and dist < float(spell["range"]) * 0.8 else 0.0
 			"beam":
-				w *= 1.2 if _los else 0.0
+				w *= 1.2 if _los and dist <= float(spell.get("range", 30.0)) else 0.0
 			"wall":
 				w *= 0.0 if not _los else (0.15 if wizard.hp > 50.0 else 0.35)
 			"self":

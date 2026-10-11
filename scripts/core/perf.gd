@@ -38,7 +38,9 @@ func _ready() -> void:
 	var vp := get_viewport()
 	vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
 	vp.size_changed.connect(_update_cap)
-	_update_cap()
+	Game.presentation_changed.connect(_settings_changed)
+	get_tree().scene_changed.connect(_settings_changed)
+	_settings_changed()
 	_last_us = Time.get_ticks_usec()
 
 func current_scale() -> float:
@@ -49,6 +51,9 @@ func _update_cap() -> void:
 	var px := float(size.x * size.y)
 	var budget := WEB_PIXEL_BUDGET if OS.has_feature("web") else DESKTOP_PIXEL_BUDGET
 	_cap = 1.0 if px <= 0.0 else clampf(sqrt(budget / px), MIN_SCALE, 1.0)
+	_locked = false
+	_pending_check = false
+	_reset_sample()
 	_apply()
 
 func _apply() -> void:
@@ -69,6 +74,9 @@ func _process(_delta: float) -> void:
 	var now := Time.get_ticks_usec()
 	var ms := (now - _last_us) / 1000.0
 	_last_us = now
+	if not get_window().has_focus() or get_tree().paused:
+		_reset_sample()
+		return
 	if not enabled or _locked or ms > STALL_MS:
 		return
 	_acc_ms += ms
@@ -111,3 +119,10 @@ func _evaluate(fps: float) -> void:
 			_apply()
 	else:
 		_good_samples = 0
+
+func _settings_changed() -> void:
+	enabled = Game.adaptive_resolution
+	_dyn = 1.0
+	_good_samples = 0
+	_up_cooldown = 3
+	_update_cap()

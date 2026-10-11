@@ -4,7 +4,7 @@ extends PanelContainer
 
 func _ready() -> void:
 	theme = UIKit.theme()
-	add_theme_stylebox_override("panel", UIKit.panel_style(Color(0.06, 0.05, 0.11, 0.94), 16, Color(0.5, 0.4, 0.85, 0.7)))
+	add_theme_stylebox_override("panel", UIKit.panel_style(UIKit.BG, 6, UIKit.ACCENT.darkened(0.45), 1))
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 10)
 	add_child(vb)
@@ -38,7 +38,7 @@ func _card(key: String) -> Control:
 	var card := PanelContainer.new()
 	card.custom_minimum_size = Vector2(380, 0)
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.add_theme_stylebox_override("panel", UIKit.panel_style(Color(0.12, 0.1, 0.2, 0.95), 10, Color(c, 0.55), 1))
+	card.add_theme_stylebox_override("panel", UIKit.panel_style(Color("#132730"), 4, Color(c, 0.55), 1))
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 4)
 	card.add_child(vb)

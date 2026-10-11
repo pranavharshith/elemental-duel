@@ -14,6 +14,7 @@ var _resume_btn: Button
 var _restart_btn: Button
 var _menu_btn: Button
 var _settings: VBoxContainer
+var _customization: Control
 
 func _ready() -> void:
 	layer = 20
@@ -78,6 +79,7 @@ func _ready() -> void:
 		Game.apply_volume()
 		Game.save_settings())
 	_settings.add_child(vol)
+	_settings.add_child(UIKit.button("Customize graphics & camera", _show_customization))
 	_menu_btn = UIKit.button("Main Menu", func() -> void: Game.go_to_menu())
 	vb.add_child(_menu_btn)
 	visible = false
@@ -87,6 +89,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	# lives here.
 	if visible and _resume_btn.visible and event.is_action_pressed("pause"):
 		get_viewport().set_input_as_handled()
+		if is_instance_valid(_customization):
+			_close_customization()
+			return
 		resume_requested.emit()
 
 func show_pause(online: bool = false) -> void:
@@ -101,6 +106,8 @@ func show_pause(online: bool = false) -> void:
 	visible = true
 
 func show_result(won: bool, score: String, online: bool = false, is_host: bool = false) -> void:
+	if is_instance_valid(_customization):
+		_close_customization()
 	_title.text = "VICTORY" if won else "DEFEAT"
 	_title.add_theme_color_override("font_color", Color(1.0, 0.85, 0.35) if won else Color(1.0, 0.45, 0.45))
 	if online:
@@ -120,6 +127,8 @@ func show_result(won: bool, score: String, online: bool = false, is_host: bool =
 	visible = true
 
 func show_message(title: String, text: String) -> void:
+	if is_instance_valid(_customization):
+		_close_customization()
 	_title.text = title
 	_title.add_theme_color_override("font_color", Color(1.0, 0.6, 0.45))
 	_subtitle.text = text
@@ -129,3 +138,28 @@ func show_message(title: String, text: String) -> void:
 	_settings.visible = false
 	_menu_btn.text = "Main Menu"
 	visible = true
+
+func _show_customization() -> void:
+	if is_instance_valid(_customization):
+		return
+	_customization = Control.new()
+	_customization.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_customization.theme = UIKit.theme()
+	get_child(0).add_child(_customization)
+	var dim := ColorRect.new()
+	dim.color = UIKit.BG
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_customization.add_child(dim)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_customization.add_child(center)
+	var box := VBoxContainer.new()
+	center.add_child(box)
+	box.add_child(load("res://scripts/ui/settings_panel.gd").new())
+	box.add_child(UIKit.button("Back to pause", _close_customization))
+
+func _close_customization() -> void:
+	if is_instance_valid(_customization):
+		_customization.queue_free()
+		_customization = null
+	Game.save_settings()

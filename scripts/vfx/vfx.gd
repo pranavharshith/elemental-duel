@@ -23,7 +23,10 @@ static var lights_suspended := 0
 ## budget is used up. Add it to the tree right away; it frees its slot when it
 ## leaves the tree.
 static func budget_light(color: Color, energy: float, rng: float) -> OmniLight3D:
-	if _active_lights >= MAX_DYNAMIC_LIGHTS or lights_suspended > 0:
+	var game := (Engine.get_main_loop() as SceneTree).root.get_node_or_null("Game")
+	var quality: int = game.graphics_quality if game else 1
+	var budget: int = [0, 2, MAX_DYNAMIC_LIGHTS][quality]
+	if _active_lights >= budget or lights_suspended > 0:
 		return null
 	_active_lights += 1
 	var l := OmniLight3D.new()

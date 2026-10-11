@@ -12,6 +12,26 @@ var rounds_to_win := 2
 var player_wins := 0
 var ai_wins := 0
 
+signal presentation_changed
+
+const ROBE_COLORS := [Color("#438de0"), Color("#38b899"), Color("#b57ade"), Color("#d79a49")]
+var graphics_quality := 1
+var adaptive_resolution := true
+var camera_fov := 72.0
+var screen_shake := 0.65
+var crosshair_style := 0
+var robe_index := 0
+var show_fps := false
+
+func robe_tint() -> Color:
+	return ROBE_COLORS[clampi(robe_index, 0, ROBE_COLORS.size() - 1)]
+
+func apply_presentation() -> void:
+	var vp := get_viewport()
+	vp.msaa_3d = [Viewport.MSAA_DISABLED, Viewport.MSAA_2X, Viewport.MSAA_4X][graphics_quality]
+	presentation_changed.emit()
+
+
 # Element keys. Physical keycodes keep the layout stable on non-QWERTY boards.
 const INPUTS := {
 	"move_forward": [KEY_W],
@@ -64,6 +84,11 @@ func _register_inputs() -> void:
 		if not InputMap.has_action(action):
 			InputMap.add_action(action, 0.2)
 	_apply_bindings()
+	if not InputMap.has_action("cast"):
+		InputMap.add_action("cast")
+		var mb := InputEventMouseButton.new()
+		mb.button_index = MOUSE_BUTTON_LEFT
+		InputMap.action_add_event("cast", mb)
 
 func _apply_bindings() -> void:
 	for action in bindings:
@@ -100,6 +125,8 @@ func key_name(action: String) -> String:
 	if not bindings.has(action):
 		return "?"
 	var code: int = bindings[action]
+	if DisplayServer.get_name() == "headless":
+		return OS.get_keycode_string(code)
 	var shown := DisplayServer.keyboard_get_keycode_from_physical(code)
 	var s := OS.get_keycode_string(shown if shown != KEY_NONE else code)
 	return s if not s.is_empty() else OS.get_keycode_string(code)
@@ -107,11 +134,7 @@ func key_name(action: String) -> String:
 ## Key letter for an element ("fire" -> "Q").
 func element_key(element: String) -> String:
 	return key_name("elem_" + element)
-	if not InputMap.has_action("cast"):
-		InputMap.add_action("cast")
-		var mb := InputEventMouseButton.new()
-		mb.button_index = MOUSE_BUTTON_LEFT
-		InputMap.action_add_event("cast", mb)
+
 
 func load_settings() -> void:
 	var cfg := ConfigFile.new()
@@ -123,7 +146,15 @@ func load_settings() -> void:
 			var code := int(cfg.get_value("keys", action, bindings[action]))
 			if code > 0:
 				bindings[action] = code
+	graphics_quality = clampi(int(cfg.get_value("display", "quality", 1)), 0, 2)
+	adaptive_resolution = bool(cfg.get_value("display", "adaptive", true))
+	camera_fov = clampf(float(cfg.get_value("display", "fov", 72.0)), 60.0, 95.0)
+	screen_shake = clampf(float(cfg.get_value("display", "shake", 0.65)), 0.0, 1.0)
+	crosshair_style = clampi(int(cfg.get_value("display", "reticle", 0)), 0, 2)
+	robe_index = clampi(int(cfg.get_value("display", "robe", 0)), 0, 3)
+	show_fps = bool(cfg.get_value("display", "fps", false))
 	apply_volume()
+	apply_presentation()
 
 func save_settings() -> void:
 	var cfg := ConfigFile.new()
@@ -133,6 +164,13 @@ func save_settings() -> void:
 	cfg.set_value("game", "difficulty", difficulty)
 	cfg.set_value("input", "sensitivity", mouse_sensitivity)
 	cfg.set_value("audio", "volume", master_volume)
+	cfg.set_value("display", "quality", graphics_quality)
+	cfg.set_value("display", "adaptive", adaptive_resolution)
+	cfg.set_value("display", "fov", camera_fov)
+	cfg.set_value("display", "shake", screen_shake)
+	cfg.set_value("display", "reticle", crosshair_style)
+	cfg.set_value("display", "robe", robe_index)
+	cfg.set_value("display", "fps", show_fps)
 	cfg.save(SETTINGS_PATH)
 
 func apply_volume() -> void:

@@ -9,6 +9,9 @@ enum State { NEUTRAL, TARGET, BLOCKED }
 var state := State.NEUTRAL
 var _previous_state := -1
 
+func _ready() -> void:
+	Game.presentation_changed.connect(queue_redraw)
+
 func _process(_delta: float) -> void:
 	if state != _previous_state:
 		_previous_state = state
@@ -26,6 +29,15 @@ func _draw() -> void:
 	elif state == State.BLOCKED:
 		col = Color(1.0, 0.72, 0.2, 1.0)
 	var outline := Color(0.05, 0.05, 0.1, 0.75)
+	if Game.crosshair_style == 1:
+		draw_circle(c, 4.0, outline)
+		draw_circle(c, 2.3, col)
+		return
+	if Game.crosshair_style == 2:
+		draw_arc(c, 10.0, 0, TAU, 32, outline, 4.0, true)
+		draw_arc(c, 10.0, 0, TAU, 32, col, 2.0, true)
+		draw_circle(c, 1.5, col)
+		return
 	var gap := 6.0 if state == State.TARGET else 8.0
 	var len := 9.0
 	for d in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
