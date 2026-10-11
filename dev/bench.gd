@@ -27,11 +27,18 @@ var _gpu := 0.0
 var _cpu := 0.0
 
 func _ready() -> void:
+	seed(70421)
+	Game.graphics_quality = 1
+	Game.adaptive_resolution = false
+	Game.apply_presentation()
+	Perf.enabled = false
+	Perf._apply()
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	Engine.max_fps = 0
 	RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
 	duel = (load("res://scenes/duel.tscn") as PackedScene).instantiate()
 	add_child(duel)
+	duel.player_ctrl.set_physics_process(false)
 	_last_us = Time.get_ticks_usec()
 
 func _process(delta: float) -> void:
@@ -46,6 +53,7 @@ func _process(delta: float) -> void:
 		var d := e.global_position - p.global_position
 		pc.yaw = rad_to_deg(atan2(-d.x, -d.z))
 		pc.pitch = -8.0
+		pc._update_aim()
 	# Strafe back and forth so the camera and wizard keep moving.
 	p.move_input = Vector3(sin(_t * 1.3), 0, 0)
 	p.hp = 100.0
@@ -98,3 +106,14 @@ func _report() -> void:
 		_frames.size(), avg, 1000.0 / avg, low, sorted[sorted.size() - 1], hitches,
 		_draws / maxi(1, _samples), _prims / maxi(1, _samples), _gpu / maxi(1, _samples), _cpu / maxi(1, _samples),
 		str(DisplayServer.window_get_size())])
+	var report := {
+		"frames": _frames.size(), "average_ms": avg, "average_fps": 1000.0 / avg,
+		"slowest_one_percent_ms": low, "worst_ms": sorted[-1], "hitches_over_33ms": hitches,
+		"draw_calls": _draws / maxi(1, _samples), "primitives": _prims / maxi(1, _samples),
+		"gpu_ms": _gpu / maxi(1, _samples), "render_cpu_ms": _cpu / maxi(1, _samples),
+		"window": str(DisplayServer.window_get_size()), "render_scale": Perf.current_scale(),
+		"adapter": RenderingServer.get_video_adapter_name(), "quality": "Balanced", "seed": 70421
+	}
+	var file := FileAccess.open("res://dev/benchmark-result.json", FileAccess.WRITE)
+	if file:
+		file.store_string(JSON.stringify(report, "\t"))

@@ -3,19 +3,22 @@ extends RefCounted
 ## Shared UI theme and widget helpers.
 
 const FONT_PATH := "res://assets/fonts/Inter.woff2"
-const BG := Color(0.07, 0.06, 0.12, 0.82)
-const ACCENT := Color(0.62, 0.48, 1.0)
-const TEXT := Color(0.95, 0.93, 1.0)
-const MUTED := Color(0.68, 0.65, 0.8)
+const BG := Color(0.025, 0.055, 0.078, 0.95)
+const ACCENT := Color(0.83, 0.69, 0.43)
+const TEXT := Color(0.91, 0.94, 0.95)
+const MUTED := Color(0.58, 0.69, 0.74)
 
 static var _theme: Theme
-static var _font: FontVariation
+static var _fonts: Dictionary = {}
 
 static func font(weight: int = 500) -> Font:
+	if _fonts.has(weight):
+		return _fonts[weight]
 	var base: Font = load(FONT_PATH) if ResourceLoader.exists(FONT_PATH) else ThemeDB.fallback_font
 	var fv := FontVariation.new()
 	fv.base_font = base
 	fv.variation_opentype = {"wght": weight}
+	_fonts[weight] = fv
 	return fv
 
 static func theme() -> Theme:
@@ -26,11 +29,11 @@ static func theme() -> Theme:
 	t.default_font_size = 18
 	t.set_color("font_color", "Label", TEXT)
 	t.set_color("font_outline_color", "Label", Color(0, 0, 0, 0.6))
-	t.set_constant("outline_size", "Label", 4)
+	t.set_constant("outline_size", "Label", 0)
 	# Buttons
-	var normal := panel_style(Color(0.16, 0.13, 0.27, 0.92), 10, Color(0.4, 0.33, 0.65, 0.8))
-	var hover := panel_style(Color(0.26, 0.2, 0.44, 0.96), 10, ACCENT)
-	var pressed := panel_style(Color(0.36, 0.28, 0.6, 1.0), 10, ACCENT.lightened(0.3))
+	var normal := panel_style(Color(0.055, 0.105, 0.14, 0.96), 4, Color(0.25, 0.36, 0.40, 0.7))
+	var hover := panel_style(Color(0.10, 0.18, 0.22, 1.0), 4, ACCENT)
+	var pressed := panel_style(Color(0.23, 0.22, 0.16, 1.0), 4, ACCENT.lightened(0.3))
 	for s in [normal, hover, pressed]:
 		s.content_margin_left = 22
 		s.content_margin_right = 22
@@ -44,11 +47,11 @@ static func theme() -> Theme:
 	t.set_color("font_color", "Button", TEXT)
 	t.set_color("font_hover_color", "Button", Color.WHITE)
 	t.set_font_size("font_size", "Button", 20)
-	t.set_stylebox("panel", "PanelContainer", panel_style(BG, 14, Color(0.4, 0.33, 0.7, 0.6)))
+	t.set_stylebox("panel", "PanelContainer", panel_style(BG, 6, Color(0.29, 0.40, 0.44, 0.6), 1))
 	# Sliders
 	var grab := StyleBoxFlat.new()
 	grab.bg_color = ACCENT
-	t.set_stylebox("slider", "HSlider", panel_style(Color(0.2, 0.18, 0.3), 4, Color(0, 0, 0, 0), 0))
+	t.set_stylebox("slider", "HSlider", panel_style(Color(0.1, 0.17, 0.20), 4, Color(0, 0, 0, 0), 0))
 	t.set_stylebox("grabber_area", "HSlider", panel_style(ACCENT.darkened(0.2), 4, Color(0, 0, 0, 0), 0))
 	t.set_stylebox("grabber_area_highlight", "HSlider", panel_style(ACCENT, 4, Color(0, 0, 0, 0), 0))
 	_theme = t
@@ -103,13 +106,13 @@ static func element_chip(element: String, size: float = 44.0, show_key: bool = t
 	var info: Dictionary = SpellBook.ELEMENT_INFO[element]
 	var p := PanelContainer.new()
 	var c: Color = info["color"]
-	var s := panel_style(c.darkened(0.15), int(size * 0.5), c.lightened(0.45), 2)
+	var s := panel_style(c.darkened(0.15), 6, c.lightened(0.45), 2)
 	s.content_margin_left = 0
 	s.content_margin_right = 0
 	s.content_margin_top = 0
 	s.content_margin_bottom = 0
 	s.shadow_color = Color(c, 0.45)
-	s.shadow_size = 6
+	s.shadow_size = 0
 	p.add_theme_stylebox_override("panel", s)
 	p.custom_minimum_size = Vector2(size, size)
 	if show_key:
@@ -120,6 +123,15 @@ static func element_chip(element: String, size: float = 44.0, show_key: bool = t
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		p.add_child(l)
+	else:
+		var icon := TextureRect.new()
+		icon.texture = load("res://assets/ui/" + element + ".svg")
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.custom_minimum_size = Vector2(size * 0.65, size * 0.65)
+		icon.modulate = Color("#14232b")
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		p.add_child(icon)
 	return p
 
 static func combo_row(key: String, chip: float = 26.0) -> HBoxContainer:
@@ -128,3 +140,14 @@ static func combo_row(key: String, chip: float = 26.0) -> HBoxContainer:
 	for e in SpellBook.elements_of(key):
 		row.add_child(element_chip(e, chip, false))
 	return row
+
+static func primary_button(text: String, cb: Callable) -> Button:
+	var b := button(text, cb)
+	b.add_theme_stylebox_override("normal", panel_style(ACCENT, 4, ACCENT.lightened(0.15), 1))
+	b.add_theme_stylebox_override("hover", panel_style(ACCENT.lightened(0.15), 4, Color.WHITE, 1))
+	b.add_theme_stylebox_override("pressed", panel_style(ACCENT.darkened(0.15), 4, ACCENT, 1))
+	for slot in ["font_color", "font_hover_color", "font_pressed_color"]:
+		b.add_theme_color_override(slot, Color("#15252d"))
+	b.add_theme_font_override("font", font(800))
+	b.custom_minimum_size.y = 58
+	return b

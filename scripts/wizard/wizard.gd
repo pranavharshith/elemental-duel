@@ -183,6 +183,45 @@ func _load_model() -> void:
 		_anim = WizardAnimation.new(players[0] as AnimationPlayer, _model_root)
 	_attach_hat()
 	_attach_staff()
+	_attach_mantle()
+
+func _attach_mantle() -> void:
+	var socket := _bone_socket("Spine1")
+	if socket == null:
+		return
+	var cloth := Arena.matte(robe_color.darkened(0.3), 0.95)
+	cloth.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in 8:
+		var x0 := float(i) / 8.0 * 2.0 - 1.0
+		var x1 := float(i + 1) / 8.0 * 2.0 - 1.0
+		var a := Vector3(x0 * 0.27, 0.10, -0.17)
+		var b := Vector3(x1 * 0.27, 0.10, -0.17)
+		var c := Vector3(x1 * 0.39, -0.9 + absf(x1) * 0.12, -0.27 - 0.035 * cos(x1 * PI * 4))
+		var d := Vector3(x0 * 0.39, -0.9 + absf(x0) * 0.12, -0.27 - 0.035 * cos(x0 * PI * 4))
+		for v in [a, b, c, a, c, d]:
+			st.add_vertex(v)
+	st.generate_normals()
+	var cape := MeshInstance3D.new()
+	cape.mesh = st.commit()
+	cape.material_override = cloth
+	socket.add_child(cape)
+	_body_meshes.append(cape)
+	var metal := Arena.matte(Color("#c4a46b"), 0.38)
+	metal.metallic = 0.6
+	for side in [-1.0, 1.0]:
+		var shoulder := MeshInstance3D.new()
+		var shape := SphereMesh.new()
+		shape.radius = 0.17
+		shape.height = 0.14
+		shape.radial_segments = 12
+		shape.rings = 6
+		shoulder.mesh = shape
+		shoulder.material_override = metal
+		shoulder.position = Vector3(side * 0.29, 0.08, 0)
+		socket.add_child(shoulder)
+		_body_meshes.append(shoulder)
 
 func _bone_socket(bone_name: String) -> BoneAttachment3D:
 	if _skeleton == null or _skeleton.find_bone(bone_name) < 0:
@@ -297,6 +336,19 @@ func _attach_staff() -> void:
 	_staff_orb.material_override = Arena.emissive_shared(robe_color.lightened(0.3), 4.0, true)
 	_staff_orb.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	staff.add_child(_staff_orb)
+	var gold := Arena.matte(Color("#b99554"), 0.35)
+	gold.metallic = 0.7
+	for height in [0.9, 1.25]:
+		var crown := MeshInstance3D.new()
+		var torus := TorusMesh.new()
+		torus.inner_radius = 0.10
+		torus.outer_radius = 0.14
+		torus.rings = 16
+		torus.ring_segments = 6
+		crown.mesh = torus
+		crown.material_override = gold
+		crown.position.y = height
+		staff.add_child(crown)
 	# No permanent staff light: two always-on omni lights forced an extra
 	# render pass over the floor and both wizards every frame. The unshaded,
 	# glowing orb carries the look.

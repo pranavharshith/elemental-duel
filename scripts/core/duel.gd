@@ -71,7 +71,7 @@ func _ready() -> void:
 		client_w = enemy if is_host else player
 	else:
 		var rival: Dictionary = RIVALS[clampi(Game.difficulty, 0, 2)]
-		player.robe_color = HOST_LOOK["color"]
+		player.robe_color = Game.robe_tint()
 		player.model_path = HOST_LOOK["model"]
 		enemy.display_name = rival["name"]
 		enemy.robe_color = rival["color"]

@@ -38,8 +38,8 @@ var _book_holder: CenterContainer
 var _status_p: Label
 var _status_e: Label
 # Change tracking so per-frame updates don't rebuild styles / theme overrides.
-var _jump_on_style := UIKit.panel_style(Color(0.55, 0.95, 0.75), 23, Color(1, 1, 1, 0.5), 2)
-var _jump_off_style := UIKit.panel_style(Color(0.25, 0.3, 0.3), 23, Color(1, 1, 1, 0.1), 2)
+var _jump_on_style := UIKit.panel_style(Color(0.55, 0.95, 0.75), 6, Color(1, 1, 1, 0.5), 2)
+var _jump_off_style := UIKit.panel_style(Color(0.25, 0.3, 0.3), 6, Color(1, 1, 1, 0.1), 2)
 var _jump_ready := false
 var _jump_init := false
 var _slot_styles: Dictionary = {}
@@ -47,6 +47,9 @@ var _slot_state: Array[String] = []
 var _spell_name_color := Color(-1, -1, -1)
 var _vignette_amount := -1.0
 var _frames := 0
+var _detail_time := 0.0
+var _fps_label: Label
+var _composer_hint := ""
 
 func _ready() -> void:
 	layer = 5
@@ -70,6 +73,13 @@ func _ready() -> void:
 	_build_bottom(root)
 	_build_center(root)
 	_build_cooldowns(root)
+	_refresh_binding_hint()
+	Game.bindings_changed.connect(_refresh_binding_hint)
+	_fps_label = UIKit.label("", 13, UIKit.MUTED)
+	_fps_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_fps_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_fps_label.offset_top = 55
+	root.add_child(_fps_label)
 
 	_book_holder = CenterContainer.new()
 	_book_holder.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -92,8 +102,8 @@ func bind(p: Wizard, e: Wizard) -> void:
 # ------------------------------------------------------------------ layout
 func _side_panel(root: Control, left: bool) -> Dictionary:
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", UIKit.panel_style(Color(0.06, 0.05, 0.1, 0.7), 12, Color(1, 1, 1, 0.08), 1))
-	panel.custom_minimum_size = Vector2(470, 0)
+	panel.add_theme_stylebox_override("panel", UIKit.panel_style(UIKit.BG, 4, Color(1, 1, 1, 0.08), 1))
+	panel.custom_minimum_size = Vector2(400, 124)
 	root.add_child(panel)
 	if left:
 		panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
@@ -101,8 +111,8 @@ func _side_panel(root: Control, left: bool) -> Dictionary:
 	else:
 		panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 		panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-		panel.position = Vector2(-24 - 470, 20)
-		panel.offset_left = -24 - 470
+		panel.position = Vector2(-24 - 400, 20)
+		panel.offset_left = -24 - 400
 		panel.offset_right = -24
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 6)
@@ -122,9 +132,9 @@ func _side_panel(root: Control, left: bool) -> Dictionary:
 		head.add_child(pips)
 		head.add_child(name)
 	var stack := Control.new()
-	stack.custom_minimum_size = Vector2(0, 26)
+	stack.custom_minimum_size = Vector2(0, 22)
 	vb.add_child(stack)
-	var ghost := UIKit.bar(Color(1.0, 0.9, 0.7, 0.9), 26, 8)
+	var ghost := UIKit.bar(Color(1.0, 0.9, 0.7, 0.9), 22, 3)
 	ghost.set_anchors_preset(Control.PRESET_FULL_RECT)
 	stack.add_child(ghost)
 	var hp := UIKit.bar(Color(0.25, 0.85, 0.4) if left else Color(0.95, 0.3, 0.3), 26, 8)
@@ -151,7 +161,8 @@ func _build_top(root: Control) -> void:
 	_p_hp_text = l["text"]
 	_pips_p = l["pips"]
 	_status_p = l["status"]
-	(l["name"] as Label).text = "You"
+	_player_name_label = l["name"]
+	_player_name_label.text = "You"
 	var r := _side_panel(root, false)
 	_e_hp = r["hp"]
 	_e_hp_ghost = r["ghost"]
@@ -168,8 +179,10 @@ func _build_top(root: Control) -> void:
 	_enemy_name_label = r["name"]
 
 var _enemy_name_label: Label
+var _player_name_label: Label
 
 func set_names(p: String, e: String) -> void:
+	_player_name_label.text = p
 	_enemy_name_label.text = e
 
 func set_score(pw: int, ew: int, needed: int) -> void:
@@ -189,13 +202,13 @@ func _pip(on: bool) -> Control:
 func _build_bottom(root: Control) -> void:
 	# Resource bars (bottom-left).
 	var res := PanelContainer.new()
-	res.add_theme_stylebox_override("panel", UIKit.panel_style(Color(0.06, 0.05, 0.1, 0.7), 12, Color(1, 1, 1, 0.08), 1))
+	res.add_theme_stylebox_override("panel", UIKit.panel_style(UIKit.BG, 4, Color(1, 1, 1, 0.08), 1))
 	res.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	res.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	res.offset_left = 24
 	res.offset_bottom = -24
 	res.offset_top = -24
-	res.custom_minimum_size = Vector2(340, 0)
+	res.custom_minimum_size = Vector2(280, 0)
 	root.add_child(res)
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 6)
@@ -235,7 +248,7 @@ func _build_bottom(root: Control) -> void:
 	_spell_name.add_theme_constant_override("outline_size", 10)
 	_spell_name.add_theme_color_override("font_outline_color", Color(0.08, 0.06, 0.12, 0.85))
 	center.add_child(_spell_name)
-	_spell_info = UIKit.label("", 14, Color(0.22, 0.22, 0.3))
+	_spell_info = UIKit.label("", 14, UIKit.MUTED)
 	_spell_info.add_theme_constant_override("outline_size", 0)
 	_spell_info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	center.add_child(_spell_info)
@@ -245,12 +258,12 @@ func _build_bottom(root: Control) -> void:
 	center.add_child(slots)
 	for i in SpellBook.MAX_QUEUE:
 		var s := PanelContainer.new()
-		s.custom_minimum_size = Vector2(52, 52)
+		s.custom_minimum_size = Vector2(38, 38)
 		slots.add_child(s)
 		_slots.append(s)
 		_slot_state.append("-")   # sentinel: style applied on the first update
 	var keys_panel := PanelContainer.new()
-	keys_panel.add_theme_stylebox_override("panel", UIKit.panel_style(Color(0.06, 0.05, 0.1, 0.7), 14, Color(1, 1, 1, 0.08), 1))
+	keys_panel.add_theme_stylebox_override("panel", UIKit.panel_style(UIKit.BG, 4, Color(1, 1, 1, 0.08), 1))
 	keys_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	center.add_child(keys_panel)
 	var keys := HBoxContainer.new()
@@ -282,7 +295,7 @@ func _build_bottom(root: Control) -> void:
 	jcol.add_child(jn)
 	keys.add_child(jcol)
 
-	var help := UIKit.label("%s spellbook  ·  ESC pause" % Game.key_name("spellbook").to_upper(), 13, Color(0.2, 0.2, 0.26, 0.7))
+	var help := UIKit.label("%s spellbook  ·  ESC pause" % Game.key_name("spellbook").to_upper(), 13, UIKit.MUTED)
 	help.add_theme_constant_override("outline_size", 0)
 	help.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	help.grow_horizontal = Control.GROW_DIRECTION_BEGIN
@@ -402,8 +415,14 @@ func _process(delta: float) -> void:
 		return
 	_update_bars(delta)
 	_update_composer()
-	_update_cooldowns()
-	_update_enemy_queue()
+	_detail_time -= delta
+	if _detail_time <= 0.0:
+		_detail_time = 0.1
+		_update_cooldowns()
+		_update_enemy_queue()
+		_fps_label.visible = Game.show_fps
+		if Game.show_fps:
+			_fps_label.text = "%d FPS  ·  %d%% 3D" % [Engine.get_frames_per_second(), roundi(Perf.current_scale() * 100)]
 	var reticle := _crosshair as Crosshair
 	if player.aim_blocked:
 		reticle.state = Crosshair.State.BLOCKED
@@ -455,12 +474,12 @@ func _slot_style(element: String) -> StyleBoxFlat:
 		return _slot_styles[element]
 	var style: StyleBoxFlat
 	if element.is_empty():
-		style = UIKit.panel_style(Color(0.1, 0.08, 0.16, 0.6), 26, Color(1, 1, 1, 0.18), 2)
+		style = UIKit.panel_style(UIKit.BG, 6, Color(1, 1, 1, 0.18), 2)
 	else:
 		var c: Color = SpellBook.ELEMENT_INFO[element]["color"]
-		style = UIKit.panel_style(c, 26, c.lightened(0.5), 3)
+		style = UIKit.panel_style(c, 6, c.lightened(0.5), 3)
 		style.shadow_color = Color(c, 0.6)
-		style.shadow_size = 10
+		style.shadow_size = 3
 	_slot_styles[element] = style
 	return style
 
@@ -476,7 +495,7 @@ func _update_composer() -> void:
 	var key := player.pending_spell()
 	if key.is_empty():
 		_spell_name.text = ""
-		_spell_info.text = "%s cast  ·  press keys together for combos" % " ".join(SpellBook.ELEMENTS.map(func(e: String) -> String: return Game.element_key(e)))
+		_spell_info.text = _composer_hint
 		return
 	var spell := SpellBook.get_spell(key)
 	var cd := player.cooldown_left(key)
@@ -514,8 +533,9 @@ func _update_cooldowns() -> void:
 		if row.get_meta("key", "") != k:
 			row.set_meta("key", k)
 			for c in row.get_children():
+				row.remove_child(c)
 				c.queue_free()
-			var l := UIKit.label("", 15, Color(0.18, 0.18, 0.25), 700)
+			var l := UIKit.label("", 15, UIKit.TEXT, 700)
 			l.add_theme_constant_override("outline_size", 0)
 			l.name = "L"
 			row.add_child(l)
@@ -533,3 +553,6 @@ func _update_enemy_queue() -> void:
 		c.queue_free()
 	for e in enemy.elements:
 		_e_queue.add_child(UIKit.element_chip(e, 20, false))
+
+func _refresh_binding_hint() -> void:
+	_composer_hint = "%s cast  ·  press keys together for combos" % " ".join(SpellBook.ELEMENTS.map(func(e: String) -> String: return Game.element_key(e)))

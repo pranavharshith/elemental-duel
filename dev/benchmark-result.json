@@ -1,0 +1,17 @@
+{
+	"adapter": "NVIDIA GeForce RTX 4050 Laptop GPU",
+	"average_fps": 393.382954621816,
+	"average_ms": 2.54205218668247,
+	"draw_calls": 198,
+	"frames": 9447,
+	"gpu_ms": 0.659132529001608,
+	"hitches_over_33ms": 0,
+	"primitives": 122643,
+	"quality": "Balanced",
+	"render_cpu_ms": 1.26214311397255,
+	"render_scale": 1.0,
+	"seed": 70421,
+	"slowest_one_percent_ms": 6.61464892042444,
+	"window": "(1600, 900)",
+	"worst_ms": 17.8419990539551
+}

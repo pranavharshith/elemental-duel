@@ -14,6 +14,6 @@ func add_shake(amount: float) -> void:
 func _process(delta: float) -> void:
 	_t += delta
 	_trauma = maxf(0.0, _trauma - delta * 2.2)
-	var s := _trauma * _trauma
+	var s := _trauma * _trauma * Game.screen_shake
 	h_offset = s * MAX_OFFSET * sin(_t * 47.0)
 	v_offset = s * MAX_OFFSET * cos(_t * 39.0)
